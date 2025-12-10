@@ -23,6 +23,11 @@ clean:
 	rm -f $(NAME)*.go
 	make clean -C doc
 
+publish:
+	if mountpoint -q ~/owncloud; then \
+		cp doc/$(NAME)Doc.pdf ~/owncloud/github_docs; \
+	fi
+
 # ---------- Language actions area ----------
 
 lang_actions: $(NAME).go go.mod go.sum
