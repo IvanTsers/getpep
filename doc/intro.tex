@@ -1,1 +1,21 @@
-A placeholder for an introdiction~\cite{aut:txt}.
+Finding amino acid sequences based on DNA sequences is one of the most
+basic procedures in bioinformatics. The program \texttt{blastx} is a
+golden standard for this task. Users usually filter and format the
+output of \texttt{blastx} using custom scripts according to their
+research goals. One such goal is to find peptide sequences given
+reference protein sequences and some query DNA regions. The
+program \texttt{getpep} streamlines the basic usage of \texttt{blastx}
+for this purpose.
+
+The program \texttt{getpep} accepts a \texttt{fasta} file of
+nucleotide sequences and a \texttt{fasta} file of protein
+sequences. It builds a command for \texttt{blastx}, runs it, filters
+the output for the best hits per query, applies the user-specified
+identity threshold, and returns the hits in one of the three formats:
+
+\begin{enumerate}
+  \itemsep0em
+  \item whole \texttt{fasta} sequences of proteins, for which hits were found;
+  \item hit \texttt{fasta} sequences of peptides (with coordinates);
+  \item a filtered output of \texttt{blastx} hits.
+\end{enumerate}

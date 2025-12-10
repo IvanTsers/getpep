@@ -1,19 +1,345 @@
 #+begin_export latex
-The package \texttt{getpep} has hooks for imports and functions.                                                          
+The program \texttt{getpep.go} has hooks for imports and
+the main function.
 #+end_export
 #+begin_src go <<getpep.go>>=
-  package getpep
-  import (
+  package main
+
+  import(
 	  //<<Imports>>
   )
+
   //<<Functions>>
+
+  func main() {
+	  //<<Main function>>
+  }
 #+end_src
 #+begin_export latex
-The function \texttt{hello} prints "hello"...
+In the main function, we set usage, set logger, declare and read
+options, and process the input.
+#+end_export
+#+begin_src go <<Main function>>=
+  //<<Set usage>>
+  //<<Set logger>>
+  //<<Declare options>>
+  //<<Parse options>>
+  //<<Process the input>>
+#+end_src
+#+begin_export latex
+Tqhe usage consists of the actual usage message, an explanation of the
+purpose of \texttt{getpep}, and an example command.
+#+end_export
+#+begin_src go <<Set usage>>=
+  u := "getpep -q [dna.fasta] -s [proteins.fasta] [option]"
+  p := "Find peptide or protein sequences that correspond" +
+	  "to DNA queries"
+  e := "getpep -q dna.fasta -s proteins.fasta"
+  clio.Usage(u, p, e)
+#+end_src
+#+begin_export latex
+We import \texttt{clio}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "github.com/evolbioinf/clio"
+#+end_src
+#+begin_export latex
+We set the standard logger \texttt{log} to print the program's name in
+message prefixes.
+#+end_export
+#+begin_src go <<Set logger>>=
+  log.SetPrefix("getpep: ")
+  log.SetFlags(log.Lmsgprefix)
+#+end_src
+#+begin_export latex
+We import \texttt{log}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "log"
+#+end_src
+#+begin_export latex
+\subsection{Options}
+We declare five options for our program:
+
+\begin{enumerate}
+  \itemsep0em
+  \item \texttt{-q} (\textbf{query}) to specify a DNA query;
+  \item \texttt{-s} (\textbf{subject}) to specify a protein subject;
+  \item \texttt{-p} to set the threshold identity percent
+    (\texttt{blastx});
+  \item \texttt{-w} (\textbf{whole}) to always report whole protein
+    entry even if only a partial hit has been found for this entry;
+  \item \texttt{-t} (\textbf{table}) to print tabular output
+    (incompatible with \texttt{-qn}, \texttt{-c}, \texttt{-w});
+\end{enumerate}
+#+end_export
+#+begin_src go <<Declare options>>=
+  optQ := flag.String("q", "", "DNA query fasta")
+  optS := flag.String("s", "", "protein subject fasta")
+  optP := flag.Float64("p", 80, "threshold hit pident")
+  optW := flag.Bool("w", false, "report whole protein entries")
+  optT := flag.Bool("t", false, "print tabular output")
+#+end_src
+#+begin_export latex
+We import \texttt{flag}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "flag"
+#+end_src
+#+begin_export latex
+We parse the options and analyze their values. We check if query and
+subject have been set.
+#+end_export
+#+begin_src go <<Parse options>>=
+  flag.Parse()
+  //<<Have \texttt{-q} and \texttt{-s} been set?>>
+#+end_src
+#+begin_export latex
+If the user has not set either query or subject, we politely ask to do
+so and exit.
+#+end_export
+#+begin_src go <<Have \texttt{-q} and \texttt{-s} been set?>>=
+  if *optQ == "" || *optS == "" {
+	  log.Fatal("please specify query and subject")
+  }
+#+end_src
+#+begin_export latex
+\subsection{Input processing}
+We begin the processing with checking the query and reading the
+subject. Then we build a \texttt{blastx} command, run it, analyze
+hits, and format the output.
+#+end_export
+#+begin_src go <<Process the input>>=
+  //<<Check query>>
+  //<<Read subject>>
+  //<<Build a \texttt{blastx} command>>
+  //<<Run \texttt{blastx}>>
+  //<<Analyze hits>>
+  //<<Format the output>>
+#+end_src
+#+begin_export latex
+\subsubsection{Check the query}
+We check if the query file exists using the function
+\texttt{fileExists}, which we will define shortly. The we check the
+error with the function \texttt{checkErr}, which we will also write
+soon. After that we notify the user if the query doesn't exist and
+exit with a non-zero status.
+#+end_export
+#+begin_src go <<Check query>>=
+  ok, err := fileExists(*optQ)
+  checkErr(err)
+  if !ok {
+	  log.Fatalf("query file %s does not exist\n", *optQ)
+  }
+#+end_src
+#+begin_export latex
+The helper function \texttt{fileExists} accepts a path to a file and
+checks if the file exists. The function returns the file existence
+status and an error.
 #+end_export
 #+begin_src go <<Functions>>=
-  func hello() {
-	    fmt.Println("Hello")
+  func fileExists(path string) (bool, error) {
+      _, err := os.Stat(path)
+      if err == nil {
+	  return true, nil
+      }
+      if errors.Is(err, os.ErrNotExist) {
+	  return false, nil
+      }
+      return false, err
+  }
+#+end_src
+#+begin_export latex
+We import \texttt{errors} and \texttt{os}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "errors"
+  "os"
+#+end_src
+#+begin_export latex
+The helper function \texttt{checkErr} prints a non-\texttt{nil} error
+and exits with a non-zero status.
+#+end_export
+#+begin_src go <<Functions>>=
+  func checkErr(err error) {
+	  if err != nil {
+		  log.Fatal(err)
+	  }
+  }
+#+end_src
+#+begin_export latex
+\subsubsection{Check and read the subject}
+We declare a variable for the subject and check if the file exists. If
+it does not exist, we notify the user and exit. Then we try to open
+subject's file. If it has been opened without errors and the user has
+not set the \texttt{-t} flag, we read all sequences from the file and
+save them to the initialized variable. If there was an error, we
+report it and exit.
+#+end_export
+#+begin_src go <<Read subject>>=
+  var subject []*fasta.Sequence
+
+  ok, err = fileExists(*optS)
+  checkErr(err)
+  if !ok {
+	  log.Fatalf("subject file %s does not exist\n", *optQ)
+  }
+
+  file, err := os.Open(*optS)
+  checkErr(err)
+  if !*optT {
+	  subject = fastautils.ReadAll(file)
+  }
+
+  defer file.Close()
+#+end_src
+#+begin_export latex
+We import \texttt{fasta} and \texttt{fastautils}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "github.com/evolbioinf/fasta"
+  "github.com/ivantsers/fastautils"
+#+end_src
+#+begin_export latex
+\subsubsection{Run \texttt{blastx}}
+We build a command for \texttt{blastx} following this template:
+
+\begin{verbatim}
+  blastx -query [optQ] \\
+         -subject [optS] \\
+         -outfmt "6 sseqid sstart send pident" \\
+         -max_target_seqs 10000 \\
+         -out blastx_result.tmp
+\end{verbatim}
+
+We also set \texttt{stderr} and \texttt{stdout} channels for the command.
+We run \texttt{blastx} with the specified arguments and read the
+output table.
+#+end_export
+#+begin_src go <<Build a \texttt{blastx} command>>=
+  blastxCmd := fmt.Sprintf("blastx " +
+	  "-query %s -subject %s " +
+	  "-outfmt \"6 sseqid sstart send qseqid pident\" " +
+	  "-max_target_seqs 10000 " +
+	  "-out blastx_result.tmp", *optQ, *optS)
+
+  cmd := exec.Command("bash", "-c", blastxCmd)
+  cmd.Stdout = os.Stdout
+  cmd.Stderr = os.Stderr
+#+end_src
+#+begin_export latex
+We import \texttt{exec}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "os/exec"
+#+end_src
+#+begin_export latex
+We run the \texttt{bash} command the have just created and check for
+errors.
+#+end_export
+#+begin_src go <<Run \texttt{blastx}>>=
+  err = cmd.Run()
+  checkErr(err)
+#+end_src
+#+begin_export latex
+\subsubsection{Analyze \texttt{blastx} results}
+We read the \texttt{blastx} hits table, filter the hits, and get
+peptide sequences.
+#+end_export
+#+begin_src go <<Analyze hits>>=
+  //<<Read hits table>>
+  //<<Filter hits>>
+#+end_src
+#+begin_export latex
+We create a config for a table reader to specify the path to the table
+file, field separator, and whether the table has a header. Then we
+read the table using the config, check the error, and delete the
+temporary table file.
+#+end_export
+#+begin_src go <<Read hits table>>=
+  readConfig := tab.ReadConfig{
+	  FilePath: "blastx_result.tmp",
+	  Separator: '\t',
+	  HasHeader: false,
+  }
+
+  hits, err := tab.ReadTable(readConfig)
+  checkErr(err)
+
+  os.Remove("blastx_result.tmp")
+#+end_src
+#+begin_export latex
+We import \texttt{tabellchen} as \texttt{tab}.
+#+end_export
+#+begin_src go <<Imports>>=
+  tab "github.com/ivantsers/tabellchen"
+#+end_src
+#+begin_export latex
+We filter the hits two times:
+
+\begin{enumerate}
+  \itemsep0em
+  \item by the fourth column (\texttt{qseqid}) keeping one hit with
+    the highest bit score for each query (the hits are sorted by bit
+    score already);
+  \item by the fifth column (\texttt{pident}) keeping rows that meet
+    the threshold set with \texttt{-p};
+\end{enumerate}
+
+We check report errors if any and exit.
+#+end_export
+#+begin_src go <<Filter hits>>=
+  err = hits.Filter(3, tab.DistinctByCol())
+  checkErr(err)
+
+  err = hits.Filter(4, tab.GreaterOrEqual(*optP))
+  checkErr(err)
+#+end_src
+#+begin_export latex
+\subsection{Format and print the output}
+We print a table if the user has opted for it, otherwise we print
+sequences.
+#+end_export
+#+begin_src go <<Format the output>>=
+  if *optT {
+	  //<<Print a table>>
+  } else {
+	  //<<Print sequences>>
+  }
+#+end_src
+#+begin_export latex
+We print the filtered output of \texttt{blastx} to \texttt{stdout}.
+#+end_export
+#+begin_src go <<Print a table>>=
+  writeConfig := tab.WriteConfig{
+	  File: os.Stdout,
+	  Separator: '\t',
+  }
+
+  hits.WriteTable(writeConfig)
+#+end_src
+#+begin_export latex
+If the user has toggled \texttt{-w}, we print whole protein entries,
+for which at least one hit has been found. Otherwise we print peptide
+hits.
+#+end_export
+#+begin_src go <<Print sequences>>=
+  if *optW {
+	  //<<Print whole protein entries>>
+  } else {
+	  //<<Print peptide hits>>
+  }
+#+end_src
+#+begin_export latex
+We identify unique subject accessions (the first column). Then for
+each accession we find corresponding sequence entries.
+#+end_export
+#+begin_src go <<Print whole protein entries>>=
+  uniqueSubjects := hits.ColUnique(0)
+  for _, acc := range(uniqueSubjects) {
+	  ss := fastautils.FindByHeader(subject, acc)
+	  s := ss[0]
+	  fmt.Println(s)
   }
 #+end_src
 #+begin_export latex
@@ -21,4 +347,38 @@ We import \texttt{fmt}.
 #+end_export
 #+begin_src go <<Imports>>=
   "fmt"
+#+end_src
+#+begin_export latex
+For each subject entry in the hits table, we find a protein with a
+matching header.
+#+end_export
+#+begin_src go <<Print peptide hits>>=
+  for _, row := range(hits.Rows) {
+	  ss := fastautils.FindByHeader(subject, row[0])
+	  if len(ss) < 1 {
+		  continue
+	  }
+	  s := ss[0]
+	  //<<Get start and end>>
+	  h := fmt.Sprintf("%s [%d:%d]", s.Header(), start, end)
+	  d := s.Data()[start-1:end]
+	  peptide := fasta.NewSequence(h, d)
+	  fmt.Println(peptide)
+  }
+#+end_src
+#+begin_export latex
+We convert the string fields with coordinates to integers.
+#+end_export
+#+begin_src go <<Get start and end>>=
+  start, err := strconv.Atoi(row[1])
+  checkErr(err)
+
+  end, err := strconv.Atoi(row[2])
+  checkErr(err)
+#+end_src
+#+begin_export latex
+We import \texttt{strconv}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "strconv"
 #+end_src

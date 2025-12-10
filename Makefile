@@ -11,7 +11,7 @@ all: $(NAME).go lang_actions
 
 $(NAME).go: $(NAME).org
 	$(ORG2NW) $(NAME).org | $(PRETANGLE) | notangle -R$(NAME).go > $(NAME).go
-	
+
 # ---------- Basic make subcommands ----------
 
 .PHONY: doc clean
@@ -20,13 +20,17 @@ doc:
 	make -C doc
 
 clean:
-	rm -f $(NAME) *.go
+	rm -f $(NAME)*.go
 	make clean -C doc
 
 # ---------- Language actions area ----------
 
-lang_actions: $(NAME).go
+lang_actions: $(NAME).go go.mod go.sum
 	gofmt -w $(NAME).go
-	go mod init $(NAME).go
-	go mod tidy
 	go build $(NAME).go
+
+go.mod:
+	go mod init $(NAME).go
+
+go.sum: go.mod $(NAME).go
+	go mod tidy
