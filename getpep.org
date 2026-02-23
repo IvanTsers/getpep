@@ -65,20 +65,21 @@ We declare five options for our program:
   \itemsep0em
   \item \texttt{-q} (\textbf{query}) to specify a DNA query;
   \item \texttt{-s} (\textbf{subject}) to specify a protein subject;
-  \item \texttt{-p} to set the threshold identity percent
-    (\texttt{blastx});
   \item \texttt{-w} (\textbf{whole}) to always report whole protein
     entry even if only a partial hit has been found for this entry;
   \item \texttt{-t} (\textbf{table}) to print tabular output
     (incompatible with \texttt{-qn}, \texttt{-c}, \texttt{-w});
+  \item \texttt{-e} (\textbf{e-value}) for BLAST;
+  \item \texttt{-word\_size} for BLAST;
 \end{enumerate}
 #+end_export
 #+begin_src go <<Declare options>>=
   optQ := flag.String("q", "", "DNA query fasta")
   optS := flag.String("s", "", "protein subject fasta")
-  optP := flag.Float64("p", 80, "threshold hit pident")
   optW := flag.Bool("w", false, "report whole protein entries")
   optT := flag.Bool("t", false, "print tabular output")
+  optE := flag.Float64("e", 10.0, "blastx evalue")
+  optWS := flag.Int("word_size", 6, "blastx word size")
 #+end_src
 #+begin_export latex
 We import \texttt{flag}.
@@ -207,8 +208,9 @@ We build a command for \texttt{blastx} following this template:
 \begin{verbatim}
   blastx -query [optQ] \\
          -subject [optS] \\
-         -outfmt "6 sseqid sstart send pident" \\
-         -max_target_seqs 10000 \\
+         -outfmt "6 sseqid sstart send" \\
+         -max_hsps 1 \\
+         -evalue 10 \\
          -out blastx_result.tmp
 \end{verbatim}
 
@@ -219,9 +221,11 @@ output table.
 #+begin_src go <<Build a \texttt{blastx} command>>=
   blastxCmd := fmt.Sprintf("blastx " +
 	  "-query %s -subject %s " +
-	  "-outfmt \"6 sseqid sstart send qseqid pident\" " +
-	  "-max_target_seqs 10000 " +
-	  "-out blastx_result.tmp", *optQ, *optS)
+	  "-outfmt \"6 sseqid sstart send qseqid\" " +
+	  "-max_hsps 1 " +
+	  "-evalue %f " +
+	  "-word_size %d " +
+	  "-out blastx_result.tmp", *optQ, *optS, *optE, *optWS)
 
   cmd := exec.Command("bash", "-c", blastxCmd)
   cmd.Stdout = os.Stdout
@@ -243,12 +247,10 @@ errors.
 #+end_src
 #+begin_export latex
 \subsubsection{Analyze \texttt{blastx} results}
-We read the \texttt{blastx} hits table, filter the hits, and get
-peptide sequences.
+We read the \texttt{blastx} hits table and get peptide sequences.
 #+end_export
 #+begin_src go <<Analyze hits>>=
   //<<Read hits table>>
-  //<<Filter hits>>
 #+end_src
 #+begin_export latex
 We create a config for a table reader to specify the path to the table
@@ -275,27 +277,6 @@ We import \texttt{tabellchen} as \texttt{tab}.
   tab "github.com/ivantsers/tabellchen"
 #+end_src
 #+begin_export latex
-We filter the hits two times:
-
-\begin{enumerate}
-  \itemsep0em
-  \item by the fourth column (\texttt{qseqid}) keeping one hit with
-    the highest bit score for each query (the hits are sorted by bit
-    score already);
-  \item by the fifth column (\texttt{pident}) keeping rows that meet
-    the threshold set with \texttt{-p};
-\end{enumerate}
-
-We check report errors if any and exit.
-#+end_export
-#+begin_src go <<Filter hits>>=
-  err = hits.Filter(3, tab.DistinctByCol())
-  checkErr(err)
-
-  err = hits.Filter(4, tab.GreaterOrEqual(*optP))
-  checkErr(err)
-#+end_src
-#+begin_export latex
 \subsection{Format and print the output}
 We print a table if the user has opted for it, otherwise we print
 sequences.
@@ -308,7 +289,7 @@ sequences.
   }
 #+end_src
 #+begin_export latex
-We print the filtered output of \texttt{blastx} to \texttt{stdout}.
+We print the output of \texttt{blastx} to \texttt{stdout}.
 #+end_export
 #+begin_src go <<Print a table>>=
   writeConfig := tab.WriteConfig{
