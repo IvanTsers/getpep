@@ -32,7 +32,7 @@ purpose of \texttt{getpep}, and an example command.
 #+end_export
 #+begin_src go <<Set usage>>=
   u := "getpep -q [dna.fasta] -s [proteins.fasta] [option]"
-  p := "Find peptide or protein sequences that correspond" +
+  p := "Find peptide or protein sequences that correspond " +
 	  "to DNA queries"
   e := "getpep -q dna.fasta -s proteins.fasta"
   clio.Usage(u, p, e)
@@ -183,7 +183,7 @@ report it and exit.
   ok, err = fileExists(*optS)
   checkErr(err)
   if !ok {
-	  log.Fatalf("subject file %s does not exist\n", *optQ)
+	  log.Fatalf("subject file %s does not exist\n", *optS)
   }
 
   file, err := os.Open(*optS)
